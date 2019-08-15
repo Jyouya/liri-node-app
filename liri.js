@@ -55,6 +55,9 @@ function openConsole() {
             process.stdout.write(chalk.blue(rest));
             readline.moveCursor(process.stdout, -rest.length, 0);
         } else {
+            // Need to be able to get the position of the cursor to make this not bug out the left right arrows.
+            // The position it must be moved to for the clearline is rl.line.length, but it needs to be moved back
+            // to the current position afterwards
             readline.clearLine(process.stdout, 1);
         }
     });
@@ -78,13 +81,16 @@ function openConsole() {
             let args;
             [cmd, ...args] = line.split(' ');
             if (commands[cmd]) {
-                commands[cmd](args);
+                commands[cmd](args).then(function() {
+                    console.log('');
+                    rl.prompt();
+                });
             } else {
-                console.log(`Command "${chalk.red(cmd)}" not found.`);
+                console.log(`Command "${chalk.red(cmd)}" not found.\n`);
+                rl.prompt();
             }
-            rl.prompt();
         } catch (err) {
-            console.log(err);
+            console.log(chalk.red('Oh no! Something has gone horribly wrong!\n'));
             rl.prompt();
         }
     });
@@ -103,9 +109,14 @@ function completer(line) {
     return [[], line];
 }
 
-function spotifyThisSong(args = ['The Sign']) {
-    const query = args.join(' ');
-    spotify.search(query).then(function (result) {
-        console.log(result);
-    })
+function spotifyThisSong(args) {
+    const query = args.join(' ') || 'The Sign Ace of Base';
+    return spotify.search({ type: 'track', query: query }).then(function (response) {
+        const track = response.tracks.items[0];
+        console.log(
+            `${chalk.bold('Artists')}: ${track.artists.map(a => a.name).join(', ')}\n` +
+            `${chalk.bold('Title')}: ${track.name}\n` +
+            `${chalk.bold('Album')}: ${track.album.name}\n` +
+            `${chalk.bold('Preview')}: ${track.preview_url || chalk.grey('Preview not available.')}`);
+    });
 }
