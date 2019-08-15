@@ -4,6 +4,7 @@
   "description": "",
   "main": "liri.js",
   "scripts": {
+    "start": "node liri.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

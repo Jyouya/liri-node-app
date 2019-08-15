@@ -3,6 +3,7 @@ const Spotify = require('node-spotify-api');
 chalk = require('chalk');
 const keys = require('./keys.js');
 const readline = require('readline');
+const axios = require('axios');
 
 const spotify = new Spotify(keys.spotify);
 
@@ -10,7 +11,7 @@ const commands = {
     // 'concert-this': 'concertThis',
     'spotify-this-song': spotifyThisSong,
     'movie-this': movieThis,
-    'do-what-it-says': 'doWhatItSays',
+    'do-what-it-says': doWhatItSays,
     'exit': process.exit.bind(null, 0),
 }
 
@@ -32,9 +33,7 @@ function openConsole() {
     const std = process.stdin;
     readline.emitKeypressEvents(std);
     std.setEncoding('utf-8');
-    std.setRawMode(true);
-    let val = '';
-    let ind = 0;
+    // std.setRawMode(true);
 
     // set up terminal with tab autocomplete
     const rl = readline.createInterface({
@@ -90,7 +89,8 @@ function openConsole() {
                 rl.prompt();
             }
         } catch (err) {
-            console.log(chalk.red('Oh no! Something has gone horribly wrong!\n'));
+            // console.log(chalk.red('Oh no! Something has gone horribly wrong!\n'));
+            console.log(err);
             rl.prompt();
         }
     });
@@ -109,16 +109,43 @@ function completer(line) {
     return [[], line];
 }
 
+class Info {
+    constructor(category, value) {
+        this.category = category;
+        this.value = value;
+    }
+    text() {
+        
+        return `${chalk.bold(this.category)}: ${this.value || chalk.grey(`${this.category} not available.`)}`
+    }
+}
+
 function spotifyThisSong(args) {
     const query = args.join(' ') || 'The Sign Ace of Base';
     return spotify.search({ type: 'track', query: query }).then(function (response) {
         const track = response.tracks.items[0];
-        console.log(
-            `${chalk.bold('Artists')}: ${track.artists.map(a => a.name).join(', ')}\n` +
-            `${chalk.bold('Title')}: ${track.name}\n` +
-            `${chalk.bold('Album')}: ${track.album.name}\n` +
-            `${chalk.bold('Preview')}: ${track.preview_url || chalk.grey('Preview not available.')}`);
+        console.log([
+            new Info('Artists', track.artists.map(a => a.name).join(', ')),
+            new Info('Title', track.name),
+            new Info('Album', track.album.name),
+            new Info('Preview', track.preview_url)
+        ].map(i => i.text()).join('\n'));
+
+        // console.log(
+        //     `${chalk.bold('Artists')}: ${track.artists.map(a => a.name).join(', ')}\n` +
+        //     `${chalk.bold('Title')}: ${track.name}\n` +
+        //     `${chalk.bold('Album')}: ${track.album.name}\n` +
+        //     `${chalk.bold('Preview')}: ${track.preview_url || chalk.grey('Preview not available.')}`);
     });
+}
+
+
+Array.prototype.with = function(key, val) {
+    for (el of this) {
+        if (el[key] === val) {
+            return el;
+        }
+    }
 }
 
 function movieThis(args) {
@@ -127,9 +154,21 @@ function movieThis(args) {
     return axios.get('http://www.omdbapi.com/',
         { params: params }
     ).then(function (results) {
-        // console.log(
-        //     `${chalk.bold('Title')}: ${results}`
-        // )
-        console.log(results);
+        // console.log(results.data.Ratings)
+        // console.log(results.data.Ratings.with('Source', 'Rotten Tomatoes'));
+        console.log([
+            new Info('Title', results.data.Title),
+            new Info('Year', results.data.Year),
+            new Info('IMDB Rating', results.data.imdbRating),
+            new Info('Rotten Tomatoes Rating', results.data.Ratings.with('Source', 'Rotten Tomatoes').Value),
+            new Info('Country', results.data.Country),
+            new Info('Language', results.data.Language),
+            new Info('Plot', results.data.Plot),
+            new Info('Actors', results.data.Actors)
+        ].map(i => i.text()).join('\n'));
     })
+}
+
+function doWhatItSays(args) {
+    
 }
