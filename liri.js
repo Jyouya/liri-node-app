@@ -9,7 +9,7 @@ const spotify = new Spotify(keys.spotify);
 const commands = {
     // 'concert-this': 'concertThis',
     'spotify-this-song': spotifyThisSong,
-    'movie-this': 'movieThis',
+    'movie-this': movieThis,
     'do-what-it-says': 'doWhatItSays',
     'exit': process.exit.bind(null, 0),
 }
@@ -81,7 +81,7 @@ function openConsole() {
             let args;
             [cmd, ...args] = line.split(' ');
             if (commands[cmd]) {
-                commands[cmd](args).then(function() {
+                commands[cmd](args).then(function () {
                     console.log('');
                     rl.prompt();
                 });
@@ -119,4 +119,17 @@ function spotifyThisSong(args) {
             `${chalk.bold('Album')}: ${track.album.name}\n` +
             `${chalk.bold('Preview')}: ${track.preview_url || chalk.grey('Preview not available.')}`);
     });
+}
+
+function movieThis(args) {
+    const movieName = args.join(' ') || 'Mr. Nobody';
+    const params = { t: movieName, apikey: keys.omdb.key }
+    return axios.get('http://www.omdbapi.com/',
+        { params: params }
+    ).then(function (results) {
+        // console.log(
+        //     `${chalk.bold('Title')}: ${results}`
+        // )
+        console.log(results);
+    })
 }
