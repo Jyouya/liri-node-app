@@ -169,15 +169,18 @@ function movieThis(args) {
             new Info('Title', results.data.Title),
             new Info('Year', results.data.Year),
             new Info('IMDB Rating', results.data.imdbRating),
-            new Info('Rotten Tomatoes Rating', results.data.Ratings.with('Source', 'Rotten Tomatoes').Value),
+            new Info('Rotten Tomatoes Rating', results.data.Ratings.with('Source', 'Rotten Tomatoes') && results.data.Ratings.with('Source', 'Rotten Tomatoes').Value),
             new Info('Country', results.data.Country),
             new Info('Language', results.data.Language),
             new Info('Plot', results.data.Plot),
             new Info('Actors', results.data.Actors)
         ].map(i => i.text()).join('\n'));
-    })
+    }).catch(function(err) {
+        console.log(`No results found for ${chalk.red(movieName)}`)
+    });
 }
 
+// Takes an optional filepath argument
 function doWhatItSays(args) {
     return fsp.readFile('./random.txt' || args.join(' '), 'utf-8').then(async function (data) {
         const commands = data.split(/(?:\r\n|\r|\n)/g)
