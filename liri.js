@@ -4,6 +4,7 @@ chalk = require('chalk');
 const keys = require('./keys.js');
 const readline = require('readline');
 const axios = require('axios');
+const fsp = require('fs').promises;
 
 const spotify = new Spotify(keys.spotify);
 
@@ -13,23 +14,30 @@ const commands = {
     'movie-this': movieThis,
     'do-what-it-says': doWhatItSays,
     'exit': process.exit.bind(null, 0),
+    'help': help,
 }
 
 let command;
 let args;
 
-[, , command, ...args] = process.argv;
-
-if (!command) {
-    console.log(`LIRI is in console mode, type ${chalk.green('exit')} to quit.\n`);
-    openConsole();
-} else if (commands[command]) {
-    commands[command](args);
-} else {
-    console.log(`Command '${chalk.red(command)}' not found.  Starting in console mode.\nType ${chalk.green('exit')} to quit.\n`)
+function main(command, ...args) {
+    // console.log(command, args);
+    
+    if (!command) {
+        console.log(`LIRI is in console mode, type ${chalk.green('exit')} to quit.\n`);
+        openConsole();
+    } else if (commands[command]) {
+        return commands[command](args);
+    } else {
+        console.log(`Command '${chalk.red(command)}' not found.  Starting in console mode.\nType ${chalk.green('exit')} to quit.\n`)
+    }
 }
 
+[, , command, ...args] = process.argv;
+main(command, ...args);
+
 function openConsole() {
+    consoleMode = true;
     const std = process.stdin;
     readline.emitKeypressEvents(std);
     std.setEncoding('utf-8');
@@ -99,6 +107,7 @@ function openConsole() {
         process.exit();
     });
     rl.prompt();
+    return rl;
 }
 
 function completer(line) {
@@ -115,7 +124,7 @@ class Info {
         this.value = value;
     }
     text() {
-        
+
         return `${chalk.bold(this.category)}: ${this.value || chalk.grey(`${this.category} not available.`)}`
     }
 }
@@ -140,7 +149,7 @@ function spotifyThisSong(args) {
 }
 
 
-Array.prototype.with = function(key, val) {
+Array.prototype.with = function (key, val) {
     for (el of this) {
         if (el[key] === val) {
             return el;
@@ -170,5 +179,23 @@ function movieThis(args) {
 }
 
 function doWhatItSays(args) {
-    
+    return fsp.readFile('./random.txt' || args.join(' '), 'utf-8').then(async function (data) {
+        const commands = data.split(/(?:\r\n|\r|\n)/g)
+        for (line of commands) {
+            if (line.match(/^\s*$/)) { // don't try to execute blank lines
+                continue;
+            }
+            await main(...line.split(/[\s,]+/));
+        }
+    }).catch(function (err) {
+        console.log(err);
+    });
+}
+
+function help() {
+    console.log([
+        chalk.bold.magenta('Available Commands:'),
+        ...Object.keys(commands).map(text => chalk.green(text))
+    ].join('\n  '));
+    return new Promise(resolve => resolve()); // empty promise, will resolve immediately
 }
